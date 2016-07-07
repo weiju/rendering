@@ -1,5 +1,7 @@
 # Exploration of 3D rendering algorithms
 
+![Example image](example.png)
+
 ## Description
 
 Just a couple of experiments with 3D rendering such as raytracing in a bunch of different languages

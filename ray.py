@@ -87,7 +87,7 @@ def render_line(y):
         ray = camera.make_ray(x, y)
         r, g, b = trace_ray(scene, ray)
         rgb = (int(r * 255), int(g * 255), int(b * 255))
-        #im.putpixel(pixel, rgb)
+        im.putpixel((x, y), rgb)
         pxarray[x][y] = rgb
 
 
@@ -109,13 +109,13 @@ if __name__ == '__main__':
     window = pygame.display.set_mode((vp.width, vp.height))
     pygame.display.set_caption('Raytracing Demo (Python) 1.0')
     pxarray = pygame.PixelArray(window)
-    #im = Image.new("RGB", viewplane.resolution)
+    im = Image.new("RGB", (vp.width, vp.height))
     start_time = current_millis()
     render(multiprocessing=False)
     elapsed = current_millis() - start_time
     print("Rendering in %d ms." % elapsed)
 
-    #im.save("render.png", "PNG")
+    im.save("example.png", "PNG")
 
     while True:
         for event in pygame.event.get():
