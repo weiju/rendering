@@ -8,6 +8,7 @@ import sys
 import multiprocessing
 import math
 import time
+import random
 
 import model
 
@@ -82,22 +83,54 @@ class get_mp_pool:
         self.pool.close()
         self.pool.join()
 
-def render_line(y):
+
+def render_line(line):
+    y, sample_offsets = line
     for x in range(vp.width):
-        ray = camera.make_ray(x, y)
-        r, g, b = trace_ray(scene, ray)
-        rgb = (int(r * 255), int(g * 255), int(b * 255))
-        im.putpixel((x, y), rgb)
+        samples = [(x + offset[0], y + offset[1]) for offset in sample_offsets]
+        num_samples = len(samples)
+        r_sum = 0.0
+        g_sum = 0.0
+        b_sum = 0.0
+        for xs, ys in samples:
+            ray = camera.make_ray(xs, ys)
+            rs, gs, bs = trace_ray(scene, ray)
+            r_sum += rs
+            g_sum += gs
+            b_sum += bs
+        rgb = (int(r_sum / num_samples * 255), int(g_sum / num_samples * 255),
+               int(b_sum / num_samples * 255))
+        #im.putpixel((x, y), rgb)
         pxarray[x][y] = rgb
 
+def jitter(jsize):
+    """add random positive or negative jitter within the specified box"""
+    return random.uniform(-jsize / 2, jsize / 2)
 
-def render(multiprocessing=True):
+
+class StochasticSampler:
+    def __init__(self, num_sections=3, pixel_width=1.0, pixel_height=1.0):
+        self.pixel_width = pixel_width
+        self.pixel_height = pixel_height
+        self.num_sections = num_sections
+
+    def make_sample_offsets(self):
+        xsec_size = self.pixel_width / self.num_sections
+        ysec_size = self.pixel_height / self.num_sections
+
+        xdiv = [xsec_size * i + xsec_size / 2 + jitter(xsec_size) for i in range(self.num_sections)]
+        ydiv = [ysec_size * i + ysec_size / 2 + jitter(ysec_size) for i in range(self.num_sections)]
+        return [(x, y) for y in ydiv for x in xdiv]
+
+
+def render(sampler, multiprocessing=True):
+    sample_offsets = sampler.make_sample_offsets()
     if multiprocessing:
         with get_mp_pool() as pool:
-            pool.map(render_line, range(vp.height))
+            pool.map(render_line, [(y, sample_offsets) for y in range(vp.height)])
     else:
         for y in range(vp.height):
-            render_line(y)
+            render_line((y, sample_offsets))
     pygame.display.flip()
 
 
@@ -109,13 +142,13 @@ if __name__ == '__main__':
     window = pygame.display.set_mode((vp.width, vp.height))
     pygame.display.set_caption('Raytracing Demo (Python) 1.0')
     pxarray = pygame.PixelArray(window)
-    im = Image.new("RGB", (vp.width, vp.height))
+    #im = Image.new("RGB", (vp.width, vp.height))
     start_time = current_millis()
-    render(multiprocessing=False)
+    render(StochasticSampler(), multiprocessing=True)
     elapsed = current_millis() - start_time
     print("Rendering in %d ms." % elapsed)
 
-    im.save("example.png", "PNG")
+    #im.save("example.png", "PNG")
 
     while True:
         for event in pygame.event.get():
