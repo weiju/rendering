@@ -136,7 +136,7 @@ def render(sampler, multiprocessing=True):
 
 if __name__ == '__main__':
     pygame.init()
-    scene = model.load_scene('scene.json')
+    scene = model.load_scene('../scene.json')
     camera = scene.camera
     vp = scene.viewport
     window = pygame.display.set_mode((vp.width, vp.height))

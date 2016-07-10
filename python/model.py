@@ -145,7 +145,7 @@ class Scene:
 
 
 def load_scene(path):
-    with open('scene.json') as infile:
+    with open(path) as infile:
         scene = json.load(infile)
         vp = Viewport(scene['viewport']['width'], scene['viewport']['height'])
         camera = Camera(vp.width, vp.height,
