@@ -1,7 +1,8 @@
 package com.boxofrats.raytracing
 
 import javax.swing.{JFrame, JViewport}
-import java.awt.{Dimension, Color}
+import java.awt.{Dimension, Color, Graphics}
+import java.awt.image.BufferedImage
 import scala.util.Random
 
 class StochasticSampler(numSections: Int=3, pixelWidth: Float=1.0f, pixelHeight: Float=1.0f) {
@@ -69,25 +70,9 @@ object Raytracer {
     }
   }
 
-  def main(args: Array[String]) {
-    val path = "../scene.json"
-    val scene = SceneReader.read(path).get
-    //println(scene)
-    val frame = new JFrame("Raytracing Demo (Scala) 1.0")
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
-    val contents = new JViewport
-    contents.setPreferredSize(new Dimension(scene.viewport.width, scene.viewport.height))
-    frame.getContentPane.add(contents)
-    frame.pack
-    frame.setVisible(true)
-    val g = contents.getGraphics
-
-    val sampler = new StochasticSampler()
-    val sampleOffsets = sampler.sampleOffsets
+  def renderLine(y: Int, scene: Scene, g: Graphics, sampleOffsets: Seq[(Float, Float)]) {
     val numSamples = sampleOffsets.length
-    //println(sampleOffsets)
-
-    for (y <- 0 until scene.viewport.height; x <- 0 until scene.viewport.width) {
+    for (x <- 0 until scene.viewport.width) {
       var r_sum: Int = 0
       var g_sum: Int = 0
       var b_sum: Int = 0
@@ -98,8 +83,55 @@ object Raytracer {
         b_sum += color.getBlue
       }
       val finalColor = new Color(r_sum / numSamples, g_sum / numSamples, b_sum / numSamples)
-      g.setColor(finalColor)
-      g.drawLine(x, y, x + 1, y + 1)
+
+      // ensuring we are performing this section in a synchronized way because of
+      // race conditions
+      synchronized {
+        g.setColor(finalColor)
+        g.drawLine(x, y, x + 1, y + 1)
+      }
     }
+  }
+
+  // Control the number of threads rendering will be performed in
+  def setParallelismGlobally(numThreads: Int): Unit = {
+    val parPkgObj = scala.collection.parallel.`package`
+    val defaultTaskSupportField = parPkgObj.getClass.getDeclaredFields.find{
+      _.getName == "defaultTaskSupport"
+    }.get
+
+    defaultTaskSupportField.setAccessible(true)
+    defaultTaskSupportField.set(
+      parPkgObj,
+      new scala.collection.parallel.ForkJoinTaskSupport(
+        new scala.concurrent.forkjoin.ForkJoinPool(numThreads)
+      )
+    )
+  }
+
+  def main(args: Array[String]) {
+    val path = "../scene.json"
+    val scene = SceneReader.read(path).get
+    val frame = new JFrame("Raytracing Demo (Scala) 1.0")
+    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+    val contents = new JViewport
+    contents.setPreferredSize(new Dimension(scene.viewport.width, scene.viewport.height))
+    frame.getContentPane.add(contents)
+    frame.pack
+    frame.setVisible(true)
+    val image = new BufferedImage(scene.viewport.width, scene.viewport.height, BufferedImage.TYPE_INT_RGB)
+    val gImg = image.getGraphics
+    val g = contents.getGraphics
+    val sampler = new StochasticSampler()
+    val sampleOffsets = sampler.sampleOffsets
+
+    // parallelized by using parallelized sequence, but the Graphics
+    // object is not thread-safe, so we need to render into an image
+    setParallelismGlobally(4)
+    val startTime = System.currentTimeMillis
+    (0 until scene.viewport.height).par.map(y => renderLine(y, scene, gImg, sampleOffsets))
+    val elapsed = System.currentTimeMillis - startTime
+    println(s"rendering finished in $elapsed ms.")
+    g.drawImage(image, 0, 0, contents)
   }
 }
