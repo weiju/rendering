@@ -125,6 +125,7 @@ class StochasticSampler:
 
 def render(sampler, multiprocessing=True):
     sample_offsets = sampler.make_sample_offsets()
+    print(sample_offsets)
     if multiprocessing:
         with get_mp_pool() as pool:
             pool.map(render_line, [(y, sample_offsets) for y in range(vp.height)])

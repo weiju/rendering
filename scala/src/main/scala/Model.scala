@@ -121,7 +121,7 @@ class Camera(viewport: Viewport, val eye: Vector3d, lookat: Vector3d,
   private lazy val xinc = (u * 2 * viewPlaneHalfWidth) / viewport.width * pixelWidth
   private lazy val yinc = (v * 2 * viewPlaneHalfHeight) / viewport.height * pixelHeight
 
-  def makeRay(x: Int, y: Int) = {
+  def makeRay(x: Double, y: Double) = {
     val viewPlanePoint = viewPlaneBottomLeft + (xinc * x) + (yinc * y)
     val rayDir = (viewPlanePoint - eye).normalized
     Ray(eye, rayDir)
@@ -189,5 +189,5 @@ object SceneReader {
       (JsPath \ "objects").read[Seq[Sphere]]
   )(Scene.apply _)
 
-  def read = Json.parse(scala.io.Source.fromFile("scene.json").mkString).validate[Scene]
+  def read(path: String) = Json.parse(scala.io.Source.fromFile(path).mkString).validate[Scene]
 }

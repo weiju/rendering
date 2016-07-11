@@ -2,7 +2,25 @@ package com.boxofrats.raytracing
 
 import javax.swing.{JFrame, JViewport}
 import java.awt.{Dimension, Color}
+import scala.util.Random
 
+class StochasticSampler(numSections: Int=3, pixelWidth: Float=1.0f, pixelHeight: Float=1.0f) {
+
+  val random = new Random
+
+  private def jitter(jsize: Float) = {
+    val signum = (random.nextInt % 2) == 0
+    val absval = (random.nextFloat * jsize) / 2
+    if (signum) absval else -absval
+  }
+  def sampleOffsets = {
+    val xsecSize = pixelWidth / numSections
+    val ysecSize = pixelHeight / numSections
+    val xdiv = for (i <- (0 until numSections)) yield  xsecSize * i + xsecSize / 2 + jitter(xsecSize)
+    val ydiv = for (i <- (0 until numSections)) yield  ysecSize * i + ysecSize / 2 + jitter(ysecSize)
+    for (y <- ydiv; x <- xdiv) yield (x, y)
+  }
+}
 
 object Raytracer {
 
@@ -52,8 +70,9 @@ object Raytracer {
   }
 
   def main(args: Array[String]) {
-    val scene = SceneReader.read.get
-    println(scene)
+    val path = "../scene.json"
+    val scene = SceneReader.read(path).get
+    //println(scene)
     val frame = new JFrame("Raytracing Demo (Scala) 1.0")
     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
     val contents = new JViewport
@@ -63,8 +82,23 @@ object Raytracer {
     frame.setVisible(true)
     val g = contents.getGraphics
 
+    val sampler = new StochasticSampler()
+    val sampleOffsets = sampler.sampleOffsets
+    val numSamples = sampleOffsets.length
+    //println(sampleOffsets)
+
     for (y <- 0 until scene.viewport.height; x <- 0 until scene.viewport.width) {
-      g.setColor(traceRay(scene, scene.camera.makeRay(x, y)))
+      var r_sum: Int = 0
+      var g_sum: Int = 0
+      var b_sum: Int = 0
+      for (offset <- sampleOffsets) {
+        val color = traceRay(scene, scene.camera.makeRay(x + offset._1, y + offset._2))
+        r_sum += color.getRed
+        g_sum += color.getGreen
+        b_sum += color.getBlue
+      }
+      val finalColor = new Color(r_sum / numSamples, g_sum / numSamples, b_sum / numSamples)
+      g.setColor(finalColor)
       g.drawLine(x, y, x + 1, y + 1)
     }
   }
