@@ -34,8 +34,6 @@ def diffuse_component(obj, ray, t, normal, light):
 
 
 def illuminate(scene, obj, ray, intersection, light):
-    light_color = 0.7
-
     t, normal = intersection
     diffuse = diffuse_component(obj, ray, t, normal, light)
     ambient = scene.ambient_coeff * obj.material.diffuse_coeff * scene.ambient_color * obj.material.diffuse_color

@@ -3,6 +3,7 @@
 (require racket/draw)
 (require json)
 
+(define EPS 1.0e-7)
 ;; data structures
 (struct Vector3d (x y z) #:transparent)
 (struct Viewport (width height) #:transparent)
@@ -20,6 +21,11 @@
 (define (make-color2 r g b [a 1.0]) (Color r g b a))
 (define (make-color-hash ht) (make-color2 (hash-ref ht 'r) (hash-ref ht 'g)
                                           (hash-ref ht 'b)))
+(define (convert-color-val v) (exact-round (* v 255)))
+(define (convert-color c)
+  (make-color (convert-color-val (Color-r c)) (convert-color-val (Color-g c))
+              (convert-color-val (Color-b c))))
+
 (define (make-vec3d ht)
   (Vector3d (hash-ref ht 'x) (hash-ref ht 'y) (hash-ref ht 'z)))
 (define (make-light ht)
@@ -94,6 +100,8 @@
   (let ([l (v3d-length v)])
     (Vector3d (/ (Vector3d-x v) l) (/ (Vector3d-y v) l) (/ (Vector3d-z v) l))))
 
+;; intersection procedures
+
 ;; Loading a scene from a JSON file
 (define (load-scene path)
   (let* ([in (open-input-file path)]
@@ -123,8 +131,56 @@
          [ray-dir (v3d-sub vp-point eye)])
   (Ray eye (v3d-normalize ray-dir))))
 
+;; geometric solution of intersecting a ray with a sphere
+(define (sphere-normal s ray t)
+  (let ([l (v3d-sub (Ray-origin ray) (Sphere-center s))])
+    (v3d-normalize (v3d-sdiv (v3d-add l (v3d-smul (Ray-direction ray) t))
+                             (Sphere-radius s)))))
+
+(define (intersect-sphere s ray)
+  (let* ([l (v3d-sub (Sphere-center s) (Ray-origin ray))]
+        [tca (v3d-dot l (Ray-direction ray))])
+    (cond [(< tca 0) '()]
+          [else
+           (let ([d2 (- (v3d-dot l l) (* tca tca))]
+                 [radius2 (* (Sphere-radius s) (Sphere-radius s))])
+             (cond [(> d2 radius2) '()]
+                   [else
+                    (let* ([thc (sqrt (- radius2 d2))]
+                           [t0 (- tca thc)]
+                           [t1 (+ tca thc)])
+                      (cond [(> t0 EPS) (list t0 (sphere-normal s ray t0) s)]
+                            [(> t1 EPS) (list t1 (sphere-normal s ray t1) s)]
+                            [else
+                             '()]))]))])))
+
+;; find closest object that intersects the ray coming from the viewer
+(define (find-closest objs ray closest)
+  (cond [(empty? objs) closest]
+        [else
+         (let ([intersection (intersect-sphere (car objs) ray)])
+           (cond [(empty? closest) (find-closest (cdr objs) ray intersection)]
+                 [(empty? intersection) (find-closest (cdr objs) ray closest)]
+                 [else
+                  (let ([tc (car closest)]
+                        [ti (car intersection)])
+                    (cond [(< ti tc)
+                           (find-closest (cdr objs) ray intersection)]
+                          [else (find-closest (cdr objs) ray closest)]))]))]))
+
+;; determine the color of the object-ray intersection point
+(define (illuminate scene ray intersection)
+  (let ([t (car intersection)]
+        [normal (cadr intersecton)]
+        [obj (caddr intersection)])
+    (make-color 0 0 0)))
+
 (define (trace-ray scene ray)
-  (make-color 255 0 0))
+  (let* ([background (convert-color (Scene-background-color scene))]
+         [closest (find-closest (Scene-objects scene) ray '())])
+    (cond [(empty? closest) background]
+          [else
+           (illuminate scene ray closest)])))
 
 (define (render-line scene y dc)
   (let ([width (Viewport-width (Scene-viewport scene))]
@@ -141,7 +197,7 @@
     '())
 
 (define (raytracer)
-  (let* ([scene (load-scene "../scene.json")]
+  (let* ([scene (load-scene "../scene-small.json")]
          [width (Viewport-width (Scene-viewport scene))]
          [height (Viewport-height (Scene-viewport scene))]
          [bm (make-bitmap width height)]
