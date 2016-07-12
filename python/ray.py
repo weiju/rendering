@@ -33,7 +33,8 @@ def diffuse_component(obj, ray, t, normal, light):
     return obj.material.diffuse_coeff * obj.material.diffuse_color * light.color * ldot_normal
 
 
-def illuminate(scene, obj, ray, intersection, light):
+def illuminate(scene, obj, ray, intersection):
+    light = scene.lights[0]
     t, normal = intersection
     diffuse = diffuse_component(obj, ray, t, normal, light)
     ambient = scene.ambient_coeff * obj.material.diffuse_coeff * scene.ambient_color * obj.material.diffuse_color
@@ -66,7 +67,7 @@ def trace_ray(scene, ray):
     closest = find_closest(scene, ray)
     if closest is not None:
         obj, intersection = closest
-        return illuminate(scene, obj, ray, intersection, scene.lights[0])
+        return illuminate(scene, obj, ray, intersection)
     else:
         return scene.bgcolor
 

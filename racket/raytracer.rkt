@@ -169,11 +169,45 @@
                           [else (find-closest (cdr objs) ray closest)]))]))]))
 
 ;; determine the color of the object-ray intersection point
+(define (trim-negative n)
+  (cond [(< n 0) 0]
+        [else n]))
+(define (trim255 n)
+  (cond [(> n 255) 255]
+        [else n]))
+
+(define (diffuse-component ray intersection light)
+  (let* ([t (car intersection)]
+         [normal (cadr intersection)]
+         [mat (Sphere-material (caddr intersection))]
+         [col (Material-diffuse-color mat)]
+         [intersect-point (v3d-add (Ray-origin ray) (v3d-smul (Ray-direction ray) t))]
+         [intersect-to-light (v3d-normalize (v3d-sub (Light-position light)
+                                                     intersect-point))]
+         [ldot-normal (trim-negative (v3d-dot normal intersect-to-light))]
+         [ds (* (Material-diffuse-coeff mat) (Light-color light) ldot-normal)])
+    (make-color2 (* (Color-r col) ds) (* (Color-g col) ds)
+                 (* (Color-b col) ds))))
+
+(define (ambient-component objmat scene)
+  (let* ([amblight (Scene-ambient-light scene)]
+         [amb-coeff (AmbientLight-coeff amblight)]
+         [amb-color (AmbientLight-color amblight)]
+         [as (* amb-coeff (Material-diffuse-coeff objmat) amb-color)]
+         [dcol (Material-diffuse-color objmat)])
+    (make-color2 (* (Color-r dcol) as) (* (Color-g dcol) as)
+                 (* (Color-b dcol) as))))
+
+(define (color-add c1 c2)
+  (make-color2 (trim255 (+ (Color-r c1) (Color-r c2)))
+               (trim255 (+ (Color-g c1) (Color-g c2)))
+               (trim255 (+ (Color-b c1) (Color-b c2)))))
+
 (define (illuminate scene ray intersection)
-  (let ([t (car intersection)]
-        [normal (cadr intersecton)]
-        [obj (caddr intersection)])
-    (make-color 0 0 0)))
+  (let* ([obj (caddr intersection)]
+         [diffuse (diffuse-component ray intersection (car (Scene-lights scene)))]
+         [ambient (ambient-component (Sphere-material obj) scene)])
+    (convert-color (color-add diffuse ambient))))
 
 (define (trace-ray scene ray)
   (let* ([background (convert-color (Scene-background-color scene))]
@@ -197,7 +231,7 @@
     '())
 
 (define (raytracer)
-  (let* ([scene (load-scene "../scene-small.json")]
+  (let* ([scene (load-scene "../scene.json")]
          [width (Viewport-width (Scene-viewport scene))]
          [height (Viewport-height (Scene-viewport scene))]
          [bm (make-bitmap width height)]
