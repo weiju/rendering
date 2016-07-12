@@ -9,6 +9,7 @@ import multiprocessing
 import math
 import time
 import random
+import argparse
 
 import model
 
@@ -33,7 +34,8 @@ def diffuse_component(obj, ray, t, normal, light):
     return obj.material.diffuse_coeff * obj.material.diffuse_color * light.color * ldot_normal
 
 
-def illuminate(scene, obj, ray, intersection):
+def illuminate(scene, ray, closest):
+    obj, intersection = closest
     light = scene.lights[0]
     t, normal = intersection
     diffuse = diffuse_component(obj, ray, t, normal, light)
@@ -67,7 +69,7 @@ def trace_ray(scene, ray):
     closest = find_closest(scene, ray)
     if closest is not None:
         obj, intersection = closest
-        return illuminate(scene, obj, ray, intersection)
+        return illuminate(scene, ray, closest)
     else:
         return scene.bgcolor
 
@@ -124,7 +126,7 @@ class StochasticSampler:
 
 def render(sampler, multiprocessing=True):
     sample_offsets = sampler.make_sample_offsets()
-    print(sample_offsets)
+    #print(sample_offsets)
     if multiprocessing:
         with get_mp_pool() as pool:
             pool.map(render_line, [(y, sample_offsets) for y in range(vp.height)])
@@ -135,8 +137,12 @@ def render(sampler, multiprocessing=True):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description="raytrace a scene")
+    parser.add_argument('scenefile', help='scene file in JSON format')
+    args = parser.parse_args()
+
     pygame.init()
-    scene = model.load_scene('../scene.json')
+    scene = model.load_scene(args.scenefile)
     camera = scene.camera
     vp = scene.viewport
     window = pygame.display.set_mode((vp.width, vp.height))
@@ -144,7 +150,7 @@ if __name__ == '__main__':
     pxarray = pygame.PixelArray(window)
     #im = Image.new("RGB", (vp.width, vp.height))
     start_time = current_millis()
-    render(StochasticSampler(), multiprocessing=True)
+    render(StochasticSampler())
     elapsed = current_millis() - start_time
     print("Rendering in %d ms." % elapsed)
 

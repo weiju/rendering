@@ -110,28 +110,32 @@ object Raytracer {
   }
 
   def main(args: Array[String]) {
-    val path = "../scene.json"
-    val scene = SceneReader.read(path).get
-    val frame = new JFrame("Raytracing Demo (Scala) 1.0")
-    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
-    val contents = new JViewport
-    contents.setPreferredSize(new Dimension(scene.viewport.width, scene.viewport.height))
-    frame.getContentPane.add(contents)
-    frame.pack
-    frame.setVisible(true)
-    val image = new BufferedImage(scene.viewport.width, scene.viewport.height, BufferedImage.TYPE_INT_RGB)
-    val gImg = image.getGraphics
-    val g = contents.getGraphics
-    val sampler = new StochasticSampler()
-    val sampleOffsets = sampler.sampleOffsets
+    if (args.length == 0) {
+      println("Usage: run <scenefile>.json")
+    } else {
+      val path = args(0)
+      val scene = SceneReader.read(path).get
+      val frame = new JFrame("Raytracing Demo (Scala) 1.0")
+      frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE)
+      val contents = new JViewport
+      contents.setPreferredSize(new Dimension(scene.viewport.width, scene.viewport.height))
+      frame.getContentPane.add(contents)
+      frame.pack
+      frame.setVisible(true)
+      val image = new BufferedImage(scene.viewport.width, scene.viewport.height, BufferedImage.TYPE_INT_RGB)
+      val gImg = image.getGraphics
+      val g = contents.getGraphics
+      val sampler = new StochasticSampler()
+      val sampleOffsets = sampler.sampleOffsets
 
-    // parallelized by using parallelized sequence, but the Graphics
-    // object is not thread-safe, so we need to render into an image
-    setParallelismGlobally(4)
-    val startTime = System.currentTimeMillis
-    (0 until scene.viewport.height).par.map(y => renderLine(y, scene, gImg, sampleOffsets))
-    val elapsed = System.currentTimeMillis - startTime
-    println(s"rendering finished in $elapsed ms.")
-    g.drawImage(image, 0, 0, contents)
+      // parallelized by using parallelized sequence, but the Graphics
+      // object is not thread-safe, so we need to render into an image
+      setParallelismGlobally(4)
+      val startTime = System.currentTimeMillis
+        (0 until scene.viewport.height).par.map(y => renderLine(y, scene, gImg, sampleOffsets))
+      val elapsed = System.currentTimeMillis - startTime
+      println(s"rendering finished in $elapsed ms.")
+      g.drawImage(image, 0, 0, contents)
+    }
   }
 }
