@@ -43,7 +43,20 @@
                      [up (Vector3d 0.0 1.0 0.0)]
                      [pixel-width 1.0]
                      [pixel-height 1.0])
-  (Camera eye 0 0 0))
+  (let* ([dir (v3d-sub lookat eye)]
+        [fov (compute-fov vpwidth vpheight focal-length)]
+        [u0 (v3d-cross dir up)]
+        [v0 (v3d-cross u0 dir)]
+        [u (v3d-normalize u0)]
+        [v (v3d-normalize v0)]
+        [aspect-ratio (/ vpheight vpwidth)]
+        [vp-halfwidth (tan (/ (car fov) 2))]
+        [vp-halfheight (* aspect-ratio vp-halfwidth)])
+    (Camera eye
+            (v3d-sub (v3d-sub lookat (v3d-smul v vp-halfheight))
+                     (v3d-smul u vp-halfwidth))
+            (v3d-sdiv (v3d-smul u (* 2 vp-halfwidth)) (* vpwidth pixel-width))
+            (v3d-sdiv (v3d-smul v (* 2 vp-halfheight)) (* vpheight pixel-height)))))
 
 ;; vector math
 (define (v3d-sub v1 v2)
@@ -100,6 +113,6 @@
            (map make-light lgts)
            (map make-object objs))))
 
-;;(println "Loading scene...")
-;;(load-scene "scene.json")
-;;(println "Done.")
+(println "Loading scene...")
+(load-scene "../scene.json")
+(println "Done.")
