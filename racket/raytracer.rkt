@@ -1,5 +1,6 @@
 #lang racket
 (provide Vector3d v3d-cross v3d-add v3d-sub)
+(require racket/draw)
 (require json)
 
 ;; data structures
@@ -16,9 +17,9 @@
                         camera lights objects) #:transparent)
 
 ;; factory functions
-(define (make-color r g b [a 1.0]) (Color r g b a))
-(define (make-color-hash ht) (make-color (hash-ref ht 'r) (hash-ref ht 'g)
-                                         (hash-ref ht 'b)))
+(define (make-color2 r g b [a 1.0]) (Color r g b a))
+(define (make-color-hash ht) (make-color2 (hash-ref ht 'r) (hash-ref ht 'g)
+                                          (hash-ref ht 'b)))
 (define (make-vec3d ht)
   (Vector3d (hash-ref ht 'x) (hash-ref ht 'y) (hash-ref ht 'z)))
 (define (make-light ht)
@@ -105,7 +106,7 @@
          [objs (hash-ref scene-json 'objects)])
     (close-input-port in)
     (Scene (Viewport (hash-ref vp 'width) (hash-ref vp 'height))
-           (make-color (hash-ref bgc 'r) (hash-ref bgc 'g) (hash-ref bgc 'b))
+           (make-color-hash bgc)
            (AmbientLight (hash-ref amb 'color) (hash-ref amb 'coeff))
            (make-camera (hash-ref vp 'width) (hash-ref vp 'height)
                         (make-vec3d (hash-ref cam 'eye))
@@ -113,6 +114,39 @@
            (map make-light lgts)
            (map make-object objs))))
 
-(println "Loading scene...")
-(load-scene "../scene.json")
-(println "Done.")
+;; generate camera ray from a given screen position
+(define (make-ray camera x y)
+  (let* ([eye (Camera-eye camera)]
+         [vp-point (v3d-add (v3d-add (Camera-bottom-left camera)
+                           (v3d-smul (Camera-xinc camera) x))
+                           (v3d-smul (Camera-yinc camera) y))]
+         [ray-dir (v3d-sub vp-point eye)])
+  (Ray eye (v3d-normalize ray-dir))))
+
+(define (trace-ray scene ray)
+  (make-color 255 0 0))
+
+(define (render-line scene y dc)
+  (let ([width (Viewport-width (Scene-viewport scene))]
+        [camera (Scene-camera scene)])
+    (for ([x (in-range width)])
+      (let* ([ray (make-ray camera x y)]
+             [color (trace-ray scene ray)])
+        (send dc set-pixel x y color)))))
+
+(define (render scene dc)
+  (let ([height (Viewport-height (Scene-viewport scene))])
+    (for ([y (in-range height)])
+      (render-line scene y dc)))
+    '())
+
+(define (raytracer)
+  (let* ([scene (load-scene "../scene.json")]
+         [width (Viewport-width (Scene-viewport scene))]
+         [height (Viewport-height (Scene-viewport scene))]
+         [bm (make-bitmap width height)]
+         [dc (send bm make-dc)])
+    (render scene dc)
+    (send bm save-file "test-rkt.png" 'png)))
+
+(raytracer)
