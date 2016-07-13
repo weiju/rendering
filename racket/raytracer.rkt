@@ -199,18 +199,24 @@
                  (* (Color-b dcol) as))))
 
 (define (color-add c1 c2)
-  (make-color2 (trim255 (+ (Color-r c1) (Color-r c2)))
-               (trim255 (+ (Color-g c1) (Color-g c2)))
-               (trim255 (+ (Color-b c1) (Color-b c2)))))
+  (make-color2 (+ (Color-r c1) (Color-r c2))
+               (+ (Color-g c1) (Color-g c2))
+               (+ (Color-b c1) (Color-b c2))))
+
+(define (color-average colors)
+  (let ([ncols (length colors)]
+        [sum (foldl color-add (make-color2 0 0 0 ) colors)])
+    (make-color2 (/ (Color-r sum) ncols) (/ (Color-g sum) ncols)
+                 (/ (Color-b sum) ncols))))
 
 (define (illuminate scene ray intersection)
   (let* ([obj (caddr intersection)]
          [diffuse (diffuse-component ray intersection (car (Scene-lights scene)))]
          [ambient (ambient-component (Sphere-material obj) scene)])
-    (convert-color (color-add diffuse ambient))))
+    (color-add diffuse ambient)))
 
 (define (trace-ray scene ray)
-  (let* ([background (convert-color (Scene-background-color scene))]
+  (let* ([background (Scene-background-color scene)]
          [closest (find-closest (Scene-objects scene) ray '())])
     (cond [(empty? closest) background]
           [else
@@ -220,9 +226,13 @@
   (let ([width (Viewport-width (Scene-viewport scene))]
         [camera (Scene-camera scene)])
     (for ([x (in-range width)])
-      (let* ([ray (make-ray camera x y)]
-             [color (trace-ray scene ray)])
-        (send dc set-pixel x y color)))))
+      (let ([sample-colors (map (lambda (offs)
+                                  (let* ([xi (+ x (car offs))]
+                                         [yi (+ y (cadr offs))]
+                                         [ray (make-ray camera xi yi)])
+                                    (trace-ray scene ray)))
+                                sample-offsets)])
+        (send dc set-pixel x y (convert-color (color-average sample-colors)))))))
 
 (define (render scene sample-offsets dc)
   (let ([height (Viewport-height (Scene-viewport scene))])
@@ -230,14 +240,14 @@
       (render-line scene y sample-offsets dc)))
     '())
 
-(define (raytracer)
-  (let* ([scene (load-scene "../scene.json")]
+(define (raytracer scene-file png-file [sample-divisions 3])
+  (let* ([scene (load-scene scene-file)]
          [width (Viewport-width (Scene-viewport scene))]
          [height (Viewport-height (Scene-viewport scene))]
          [bm (make-bitmap width height)]
          [dc (send bm make-dc)])
-    (render scene (make-sample-offsets 2) dc)
-    (send bm save-file "test-rkt.png" 'png)))
+    (render scene (make-sample-offsets sample-divisions) dc)
+    (send bm save-file png-file 'png)))
 
 (define (jitter jsize)
   (let ([signum (modulo (random 999) 2)]
@@ -260,4 +270,5 @@
     (for*/list ([x xdiv]
            [y ydiv])
       (list (+ x (jitter xsec-size)) (+ y (jitter ysec-size))))))
-(raytracer)
+
+(raytracer "../scene.json" "testout.png")

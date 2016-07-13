@@ -4,12 +4,41 @@
 
 ## Description
 
-Just a couple of experiments with 3D rendering such as raytracing in a bunch of different languages
+This project contains implementations of 3D rendering algorithms and techniques
+in different languages to compare them under different aspects.
+
+Currently these languages are
+
+  * Python 3
+  * Scala
+  * Racket
+
+I picked those 3 for now for no other reasons than that I like them:
+
+  * Python for fast prototyping
+  * Scala for a speedy, tight implementation
+  * Racket for meditating
 
 ## Dependencies
 
+### Python version
+
+The Python version depends on
+
+  * NumPy for linear algebra
+  * PyGame for graphics output
+  * Pillow for images
+
+### Scala version
+
 The Scala version uses play-json as its JSON library since the Scala standard library does not support JSON anymore.
 Version 2.3.10 is used because higher versions depend on Java 8
+
+### Racket version
+
+This version was developed with Racket 6.5, since Racket's base package is fairly comprehensive,
+there are no other dependencies, simply load it in DrRacket and run, the result is a
+PNG file
 
 ## Notes about Scene format
 
