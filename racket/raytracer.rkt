@@ -216,7 +216,7 @@
           [else
            (illuminate scene ray closest)])))
 
-(define (render-line scene y dc)
+(define (render-line scene y sample-offsets dc)
   (let ([width (Viewport-width (Scene-viewport scene))]
         [camera (Scene-camera scene)])
     (for ([x (in-range width)])
@@ -224,10 +224,10 @@
              [color (trace-ray scene ray)])
         (send dc set-pixel x y color)))))
 
-(define (render scene dc)
+(define (render scene sample-offsets dc)
   (let ([height (Viewport-height (Scene-viewport scene))])
     (for ([y (in-range height)])
-      (render-line scene y dc)))
+      (render-line scene y sample-offsets dc)))
     '())
 
 (define (raytracer)
@@ -236,7 +236,26 @@
          [height (Viewport-height (Scene-viewport scene))]
          [bm (make-bitmap width height)]
          [dc (send bm make-dc)])
-    (render scene dc)
+    (render scene (make-sample-offsets 2) dc)
     (send bm save-file "test-rkt.png" 'png)))
 
+(define (jitter jsize)
+  (let ([signum (modulo (random 999) 2)]
+        [absval (/ (* (random) jsize) 2)])
+    (cond [(= signum 0) absval]
+          [else (- absval)])))
+
+(define (make-division sec-size i)
+  (+ (* sec-size i) (/ sec-size 2) (jitter sec-size)))
+
+(define (make-divisions total num-sections)
+  (let ([sec-size (/ total num-sections)])
+    (map (lambda (i) (make-division sec-size i)) (for/list ([i num-sections]) i))))
+
+(define (make-sample-offsets num-sections [pixel-width 1.0] [pixel-height 1.0])
+  (let ([xdiv (make-divisions pixel-width num-sections)]
+        [ydiv (make-divisions pixel-height num-sections)])
+    (for*/list ([x xdiv]
+           [y ydiv])
+      (list x y))))
 (raytracer)
