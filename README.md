@@ -1,11 +1,12 @@
-# Exploration of 3D rendering algorithms
+# Rosetta Raytracer - Ray tracing in multiple programming languages
 
 ![Example image](example.png)
 
 ## Description
 
-This project contains implementations of 3D rendering algorithms and techniques
-in different languages to compare them under different aspects.
+This project contains implementations of the ray tracing algorithms
+and techniques in different languages to explore and compare them under
+different aspects such as design, performance and parallelism.
 
 Currently these languages are
 
@@ -44,3 +45,11 @@ PNG file
 
 Scenes are specified in JSON, the structure was designed so to support a clean parser structure
 if possible.
+
+## References
+
+  1. "An Introduction to Raytracing", Andrew S. Glassner et al., 1989, Academic Press
+  2. [Steve Harvey, C++-Raytracer](https://steveharveynz.wordpress.com/category/programming/c-raytracer/)
+  3. [Scratchapixel, series on ray tracing](http://www.scratchapixel.com/)
+  4. [Wikipedia, Ray tracing entry](https://en.wikipedia.org/wiki/Ray_tracing_(graphics))
+  5. [ForTheScience.org, series about ray tracing](http://forthescience.org/blog/2011/09/05/a-raytracer-in-python-part-1-basic-functionality/)
