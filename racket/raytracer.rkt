@@ -246,7 +246,7 @@
           [else (- absval)])))
 
 (define (make-division sec-size i)
-  (+ (* sec-size i) (/ sec-size 2) (jitter sec-size)))
+  (+ (* sec-size i) (/ sec-size 2)))
 
 (define (make-divisions total num-sections)
   (let ([sec-size (/ total num-sections)])
@@ -254,8 +254,10 @@
 
 (define (make-sample-offsets num-sections [pixel-width 1.0] [pixel-height 1.0])
   (let ([xdiv (make-divisions pixel-width num-sections)]
-        [ydiv (make-divisions pixel-height num-sections)])
+        [ydiv (make-divisions pixel-height num-sections)]
+        [xsec-size (/ pixel-width num-sections)]
+        [ysec-size (/ pixel-height num-sections)])
     (for*/list ([x xdiv]
            [y ydiv])
-      (list x y))))
+      (list (+ x (jitter xsec-size)) (+ y (jitter ysec-size))))))
 (raytracer)

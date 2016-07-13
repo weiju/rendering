@@ -17,9 +17,9 @@ class StochasticSampler(numSections: Int=3, pixelWidth: Float=1.0f, pixelHeight:
   def sampleOffsets = {
     val xsecSize = pixelWidth / numSections
     val ysecSize = pixelHeight / numSections
-    val xdiv = for (i <- (0 until numSections)) yield  xsecSize * i + xsecSize / 2 + jitter(xsecSize)
-    val ydiv = for (i <- (0 until numSections)) yield  ysecSize * i + ysecSize / 2 + jitter(ysecSize)
-    for (y <- ydiv; x <- xdiv) yield (x, y)
+    val xdiv = for (i <- (0 until numSections)) yield  xsecSize * i + xsecSize / 2
+    val ydiv = for (i <- (0 until numSections)) yield  ysecSize * i + ysecSize / 2
+    for (y <- ydiv; x <- xdiv) yield (x + jitter(xsecSize), y + jitter(ysecSize))
   }
 }
 

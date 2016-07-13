@@ -119,9 +119,9 @@ class StochasticSampler:
         xsec_size = self.pixel_width / self.num_sections
         ysec_size = self.pixel_height / self.num_sections
 
-        xdiv = [xsec_size * i + xsec_size / 2 + jitter(xsec_size) for i in range(self.num_sections)]
-        ydiv = [ysec_size * i + ysec_size / 2 + jitter(ysec_size) for i in range(self.num_sections)]
-        return [(x, y) for y in ydiv for x in xdiv]
+        xdiv = [xsec_size * i + xsec_size / 2 for i in range(self.num_sections)]
+        ydiv = [ysec_size * i + ysec_size / 2 for i in range(self.num_sections)]
+        return [(x + jitter(xsec_size), y + jitter(ysec_size)) for y in ydiv for x in xdiv]
 
 
 def render(sampler, multiprocessing=True):
