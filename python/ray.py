@@ -17,6 +17,9 @@ def current_millis():
     """returns the current time in milliseconds"""
     return int(math.floor(time.time() * 1000))
 
+def __normalize(v):
+    return v / LA.norm(v)
+
 """
 The illumination routines could mostly be attached to the Scene class,
 but for now, I want to keep them out and treat the scene as a pure data
@@ -33,14 +36,26 @@ def diffuse_component(obj, ray, t, normal, light):
 
     return obj.material.diffuse_coeff * obj.material.diffuse_color * light.color * ldot_normal
 
+def phong_component(obj, ray, t, normal, light):
+    specular_coeff = 0.95
+    n = 10  # larger => smaller highlight spot, smaller n => larger spot
+
+    intersect_point = ray.origin + t * ray.direction
+    l = __normalize(light.position - intersect_point)
+    v = __normalize(ray.origin - intersect_point)
+    r = 2 * (np.dot(l, normal)) * (normal - l)
+    color_comp = specular_coeff * light.color * (np.dot(r, v) ** n)
+    return np.array([color_comp, color_comp, color_comp])
+
 
 def illuminate(scene, ray, closest):
     obj, intersection = closest
     light = scene.lights[0]
     t, normal = intersection
     diffuse = diffuse_component(obj, ray, t, normal, light)
+    specular = phong_component(obj, ray, t, normal, light)
     ambient = scene.ambient_coeff * obj.material.diffuse_coeff * scene.ambient_color * obj.material.diffuse_color
-    total = diffuse + ambient
+    total = diffuse + ambient + specular
     for i in range(3):
         if total[i] > 1.0:
             total[i] = 1.0
@@ -84,6 +99,14 @@ class get_mp_pool:
         self.pool.close()
         self.pool.join()
 
+def trim_color_comp(value):
+    """make sure the color components don't excced their maximum"""
+    if value > 255:
+        return 255
+    elif value < 0:
+        return 0
+    else:
+        return value
 
 def render_line(line):
     y, sample_offsets = line
@@ -99,10 +122,15 @@ def render_line(line):
             r_sum += rs
             g_sum += gs
             b_sum += bs
-        rgb = (int(r_sum / num_samples * 255), int(g_sum / num_samples * 255),
-               int(b_sum / num_samples * 255))
-        #im.putpixel((x, y), rgb)
-        pxarray[x][y] = rgb
+        rgb = (trim_color_comp(int(r_sum / num_samples * 255)),
+               trim_color_comp(int(g_sum / num_samples * 255)),
+               trim_color_comp(int(b_sum / num_samples * 255)))
+        try:
+            im.putpixel((x, y), rgb)
+            pxarray[x][y] = rgb
+        except:
+            print("rgb: ", rgb)
+            raise
 
 def jitter(jsize):
     """add random positive or negative jitter within the specified box"""
@@ -126,7 +154,6 @@ class StochasticSampler:
 
 def render(sampler, multiprocessing=True):
     sample_offsets = sampler.make_sample_offsets()
-    #print(sample_offsets)
     if multiprocessing:
         with get_mp_pool() as pool:
             pool.map(render_line, [(y, sample_offsets) for y in range(vp.height)])
@@ -139,6 +166,7 @@ def render(sampler, multiprocessing=True):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description="raytrace a scene")
     parser.add_argument('scenefile', help='scene file in JSON format')
+    parser.add_argument('pngfile', help='output file in PNG format')
     args = parser.parse_args()
 
     pygame.init()
@@ -148,13 +176,13 @@ if __name__ == '__main__':
     window = pygame.display.set_mode((vp.width, vp.height))
     pygame.display.set_caption('Raytracing Demo (Python) 1.0')
     pxarray = pygame.PixelArray(window)
-    #im = Image.new("RGB", (vp.width, vp.height))
+    im = Image.new("RGB", (vp.width, vp.height))
     start_time = current_millis()
-    render(StochasticSampler())
+    render(StochasticSampler(), multiprocessing=False)
     elapsed = current_millis() - start_time
     print("Rendering in %d ms." % elapsed)
 
-    #im.save("example.png", "PNG")
+    im.save(args.pngfile, "PNG")
 
     while True:
         for event in pygame.event.get():
