@@ -1,5 +1,6 @@
 #lang racket
-(provide Vector3d v3d-cross v3d-add v3d-sub)
+(provide Vector3d v3d-cross v3d-add v3d-sub v3d-length v3d-normalize
+         v3d-smul v3d-sdiv v3d-dot)
 (require racket/draw)
 (require json)
 
@@ -271,4 +272,4 @@
            [y ydiv])
       (list (+ x (jitter xsec-size)) (+ y (jitter ysec-size))))))
 
-(raytracer "../scene.json" "testout.png")
+;;(raytracer "../scene.json" "testout.png")

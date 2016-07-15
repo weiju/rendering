@@ -178,7 +178,7 @@ if __name__ == '__main__':
     pxarray = pygame.PixelArray(window)
     im = Image.new("RGB", (vp.width, vp.height))
     start_time = current_millis()
-    render(StochasticSampler(), multiprocessing=False)
+    render(StochasticSampler(), multiprocessing=True)
     elapsed = current_millis() - start_time
     print("Rendering in %d ms." % elapsed)
 
