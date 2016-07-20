@@ -1,6 +1,7 @@
 #lang racket
 (provide Vector3d v3d-cross v3d-add v3d-sub v3d-length v3d-normalize
-         v3d-smul v3d-sdiv v3d-dot)
+         v3d-smul v3d-sdiv v3d-dot
+         trim-color-comp convert-color-val)
 (require racket/draw)
 (require json)
 
@@ -23,7 +24,8 @@
 (define (make-color2 r g b [a 1.0]) (Color r g b a))
 (define (make-color-hash ht) (make-color2 (hash-ref ht 'r) (hash-ref ht 'g)
                                           (hash-ref ht 'b)))
-(define (convert-color-val v) (min 255 (max 0 (exact-round (* v 255)))))
+(define (trim-color-comp c) (min 1 (max 0 c)))
+(define (convert-color-val v) (exact-round (* (trim-color-comp v) 255)))
 (define (convert-color c)
   (make-color (convert-color-val (Color-r c)) (convert-color-val (Color-g c))
               (convert-color-val (Color-b c))))
@@ -173,9 +175,7 @@
                           [else (find-closest (cdr objs) ray closest)]))]))]))
 
 ;; determine the color of the object-ray intersection point
-(define (trim-negative n)
-  (cond [(< n 0) 0]
-        [else n]))
+(define (trim-negative n) (max n 0))
 
 (define (diffuse-component ray intersection light)
   (let* ([t (car intersection)]
@@ -285,4 +285,4 @@
            [y ydiv])
       (list (+ x (jitter xsec-size)) (+ y (jitter ysec-size))))))
 
-(raytracer "../scene.json" "testout.png")
+;;(raytracer "../scene.json" "testout.png")

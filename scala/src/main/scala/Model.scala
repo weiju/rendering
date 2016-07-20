@@ -32,13 +32,32 @@ case class Vector3d(x: Double, y: Double, z: Double) {
   }
 }
 
+/**
+  * Helper class to facilitate color calculation
+  */
+case class ColorTuple(r: Float, g: Float, b: Float, alpha: Float=1.0f) {
+  def +(other: ColorTuple) = ColorTuple(r + other.r, g + other.g, b + other.b)
+  def /(s: Float) = ColorTuple(r / s, g / s, b / s)
+  def toColor: Color = new Color(ColorTuple.trimComponent(r), ColorTuple.trimComponent(g),
+    ColorTuple.trimComponent(b))
+  def trimmed = ColorTuple(ColorTuple.trimComponent(r), ColorTuple.trimComponent(g),
+    ColorTuple.trimComponent(b))
+  def rgbComponents = Seq(r, g, b)
+}
+
+object ColorTuple {
+  def trimComponent(comp: Float): Float = math.max(0.0f, math.min(1.0f, comp))
+  def average(colors: Seq[ColorTuple]) = colors.reduce(_ + _) / colors.length
+}
+
 case class Ray(origin: Vector3d, direction: Vector3d)
 case class Intersection(t: Double, normal: Vector3d)
 
 /**
   * Representation of a material entry:
   */
-case class Material(diffuseColor: Color, diffuseCoeff: Float, specularCoeff: Float, specularHighlight: Float)
+case class Material(diffuseColor: ColorTuple,
+  diffuseCoeff: Float, specularCoeff: Float, specularHighlight: Float)
 
 trait GeometryObject {
 
@@ -131,16 +150,16 @@ class Camera(viewport: Viewport, val eye: Vector3d, lookat: Vector3d,
 case class Viewport(width: Int, height: Int)
 case class AmbientLight(color: Float, coeff: Float)
 case class Light(position: Vector3d, color: Float)
-case class Scene(viewport: Viewport, camera: Camera, backgroundColor: Color,
+case class Scene(viewport: Viewport, camera: Camera, backgroundColor: ColorTuple,
   ambientLight: AmbientLight, lights: Array[Light], objects: Seq[GeometryObject])
 
 object SceneReader {
 
-  implicit val colorReads: Reads[Color] = (
+  implicit val colorReads: Reads[ColorTuple] = (
     (JsPath \ "r").read[Float] and
       (JsPath \ "g").read[Float] and
       (JsPath \ "b").read[Float]
-  )((r, g, b) => new Color(r, g, b))
+  )((r, g, b) => ColorTuple(r, g, b))
 
   implicit val vector3dReads: Reads[Vector3d] = (
     (JsPath \ "x").read[Double] and
@@ -170,7 +189,7 @@ object SceneReader {
   )(Light.apply _)
 
   implicit val materialReads: Reads[Material] = (
-    (JsPath \ "diffuse_color").read[Color] and
+    (JsPath \ "diffuse_color").read[ColorTuple] and
       (JsPath \ "diffuse_coeff").read[Float] and
       (JsPath \ "specular_coeff").read[Float] and
       (JsPath \ "specular_highlight").read[Float]
@@ -185,7 +204,7 @@ object SceneReader {
   implicit val sceneReads: Reads[Scene] = (
     (JsPath \ "viewport").read[Viewport] and
       (JsPath).read[Camera] and
-      (JsPath \ "background_color").read[Color] and
+      (JsPath \ "background_color").read[ColorTuple] and
       (JsPath \ "ambient_light").read[AmbientLight] and
       (JsPath \ "lights").read[Array[Light]] and
       (JsPath \ "objects").read[Seq[Sphere]]

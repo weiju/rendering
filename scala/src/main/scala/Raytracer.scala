@@ -27,38 +27,34 @@ class StochasticSampler(numSections: Int=3, pixelWidth: Float=1.0f, pixelHeight:
 object Raytracer {
 
   def diffuseComponent(obj: GeometryObject, ray: Ray, intersection: Intersection,
-    light: Light): Array[Float] = {
+    light: Light) = {
     val intersectPoint = ray.origin + ray.direction * intersection.t
     val intersectToLight1 = light.position - intersectPoint
     val intersectToLight2 = intersectToLight1.normalized
     val ldotNormal = intersection.normal dot intersectToLight2
     val ldn = if (ldotNormal < 0.0) 0.0 else ldotNormal
-    val rgb = obj.material.diffuseColor.getRGBComponents(null)
+    val rgb = obj.material.diffuseColor.rgbComponents
     val diffuse = rgb.map(c => (obj.material.diffuseCoeff * c * light.color * ldn).toFloat)
-    diffuse
+    ColorTuple(diffuse(0), diffuse(1), diffuse(2))
   }
 
   def phongComponent(obj: GeometryObject, ray: Ray, intersection: Intersection,
-    light: Light): Array[Float] = {
+    light: Light) = {
     val intersectPoint = ray.origin + ray.direction * intersection.t
     val l = (light.position - intersectPoint).normalized
     val v = (ray.origin - intersectPoint).normalized
     val r = (intersection.normal - l) * 2 * (l dot intersection.normal)
     val colorComp: Float = (obj.material.specularCoeff * light.color * math.pow((r dot v), obj.material.specularHighlight)).toFloat
-    Array[Float](colorComp, colorComp, colorComp)
+    ColorTuple(colorComp, colorComp, colorComp)
   }
 
   def illuminate(scene: Scene, obj: GeometryObject, ray: Ray, intersection: Intersection) = {
     val diffuse = diffuseComponent(obj, ray, intersection, scene.lights(0))
     val specular = phongComponent(obj, ray, intersection, scene.lights(0))
-    val rgb = obj.material.diffuseColor.getRGBComponents(null)
-    val ambient = rgb.map(c => (scene.ambientLight.coeff * obj.material.diffuseCoeff * scene.ambientLight.color * c).toFloat)
-
-    val total = Array(diffuse(0) + ambient(0) + specular(0),
-      diffuse(1) + ambient(1) + specular(1),
-      diffuse(2) + ambient(2) + specular(2))
-    val res = total.map(c => if (c > 1.0f) 1.0f else c).map(c => if (c < 0.0f) 0.0f else c)
-    new Color(res(0), res(1), res(2))
+    val rgb = obj.material.diffuseColor.rgbComponents
+    val amb = rgb.map(c => (scene.ambientLight.coeff * obj.material.diffuseCoeff * scene.ambientLight.color * c).toFloat)
+    val ambient = ColorTuple(amb(0), amb(1), amb(2))
+    Seq(diffuse, ambient, specular).reduce(_ + _)
   }
 
   private def findClosest(scene: Scene, ray: Ray): Option[Tuple2[GeometryObject, Intersection]] = {
@@ -76,7 +72,7 @@ object Raytracer {
     closest
   }
 
-  def traceRay(scene: Scene, ray: Ray): Color = {
+  def traceRay(scene: Scene, ray: Ray): ColorTuple = {
     val closest = findClosest(scene, ray)
     if (closest.isEmpty) scene.backgroundColor
     else {
@@ -91,13 +87,8 @@ object Raytracer {
       var r_sum: Int = 0
       var g_sum: Int = 0
       var b_sum: Int = 0
-      for (offset <- sampleOffsets) {
-        val color = traceRay(scene, scene.camera.makeRay(x + offset._1, y + offset._2))
-        r_sum += color.getRed
-        g_sum += color.getGreen
-        b_sum += color.getBlue
-      }
-      val finalColor = new Color(r_sum / numSamples, g_sum / numSamples, b_sum / numSamples)
+      val colors = sampleOffsets.map(o => traceRay(scene, scene.camera.makeRay(x + o._1, y + o._2)))
+      val finalColor = ColorTuple.average(colors).toColor
 
       // ensuring we are performing this section in a synchronized way because of
       // race conditions

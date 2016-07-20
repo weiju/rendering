@@ -37,3 +37,12 @@
 (check-equal?
  (v3d-sdiv (Vector3d 3.0 6.0 9.0) 3.0)
  (Vector3d 1.0 2.0 3.0) "divide vector by a scalar")
+
+;; check color functions
+(check-equal? (trim-color-comp 1.3) 1.0)
+(check-equal? (trim-color-comp -1.3) 0.0)
+(check-equal? (convert-color-val 1.0) 255)
+(check-equal? (convert-color-val 0.0) 0)
+(check-equal? (convert-color-val -0.5) 0)
+(check-equal? (convert-color-val 1.2) 255)
+(check-equal? (convert-color-val 0.5) 128)
