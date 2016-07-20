@@ -4,6 +4,7 @@ import javax.swing.{JFrame, JViewport}
 import java.awt.{Dimension, Color, Graphics}
 import java.awt.image.BufferedImage
 import scala.util.Random
+import scala.math
 
 class StochasticSampler(numSections: Int=3, pixelWidth: Float=1.0f, pixelHeight: Float=1.0f) {
 
@@ -37,12 +38,26 @@ object Raytracer {
     diffuse
   }
 
+  def phongComponent(obj: GeometryObject, ray: Ray, intersection: Intersection,
+    light: Light): Array[Float] = {
+    val intersectPoint = ray.origin + ray.direction * intersection.t
+    val l = (light.position - intersectPoint).normalized
+    val v = (ray.origin - intersectPoint).normalized
+    val r = (intersection.normal - l) * 2 * (l dot intersection.normal)
+    val colorComp: Float = (obj.material.specularCoeff * light.color * math.pow((r dot v), obj.material.specularHighlight)).toFloat
+    Array[Float](colorComp, colorComp, colorComp)
+  }
+
   def illuminate(scene: Scene, obj: GeometryObject, ray: Ray, intersection: Intersection) = {
     val diffuse = diffuseComponent(obj, ray, intersection, scene.lights(0))
+    val specular = phongComponent(obj, ray, intersection, scene.lights(0))
     val rgb = obj.material.diffuseColor.getRGBComponents(null)
     val ambient = rgb.map(c => (scene.ambientLight.coeff * obj.material.diffuseCoeff * scene.ambientLight.color * c).toFloat)
-    val total = Array(diffuse(0) + ambient(0), diffuse(1) + ambient(1), diffuse(2) + ambient(2))
-    val res = total.map(c => if (c > 1.0f) 1.0f else c)
+
+    val total = Array(diffuse(0) + ambient(0) + specular(0),
+      diffuse(1) + ambient(1) + specular(1),
+      diffuse(2) + ambient(2) + specular(2))
+    val res = total.map(c => if (c > 1.0f) 1.0f else c).map(c => if (c < 0.0f) 0.0f else c)
     new Color(res(0), res(1), res(2))
   }
 
@@ -130,9 +145,10 @@ object Raytracer {
 
       // parallelized by using parallelized sequence, but the Graphics
       // object is not thread-safe, so we need to render into an image
+      // TODO: there are still race conditions to the off-sceen image (?!!)
       setParallelismGlobally(4)
       val startTime = System.currentTimeMillis
-        (0 until scene.viewport.height).par.map(y => renderLine(y, scene, gImg, sampleOffsets))
+      (0 until scene.viewport.height).par.map(y => renderLine(y, scene, gImg, sampleOffsets))
       val elapsed = System.currentTimeMillis - startTime
       println(s"rendering finished in $elapsed ms.")
       g.drawImage(image, 0, 0, contents)

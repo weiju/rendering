@@ -38,7 +38,7 @@ case class Intersection(t: Double, normal: Vector3d)
 /**
   * Representation of a material entry:
   */
-case class Material(diffuseColor: Color, diffuseCoeff: Float)
+case class Material(diffuseColor: Color, diffuseCoeff: Float, specularCoeff: Float, specularHighlight: Float)
 
 trait GeometryObject {
 
@@ -171,7 +171,9 @@ object SceneReader {
 
   implicit val materialReads: Reads[Material] = (
     (JsPath \ "diffuse_color").read[Color] and
-      (JsPath \ "diffuse_coeff").read[Float]
+      (JsPath \ "diffuse_coeff").read[Float] and
+      (JsPath \ "specular_coeff").read[Float] and
+      (JsPath \ "specular_highlight").read[Float]
   )(Material.apply _)
 
   implicit val sphereReads: Reads[Sphere] = (

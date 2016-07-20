@@ -37,14 +37,17 @@ def diffuse_component(obj, ray, t, normal, light):
     return obj.material.diffuse_coeff * obj.material.diffuse_color * light.color * ldot_normal
 
 def phong_component(obj, ray, t, normal, light):
-    specular_coeff = 0.95
-    n = 10  # larger => smaller highlight spot, smaller n => larger spot
+    """
+    important material parameters:
+    specular_highlight ~ 10 (larger => smaller highlight spot, smaller n => larger spot)
+    specular_coeff
+    """
 
     intersect_point = ray.origin + t * ray.direction
     l = __normalize(light.position - intersect_point)
     v = __normalize(ray.origin - intersect_point)
     r = 2 * (np.dot(l, normal)) * (normal - l)
-    color_comp = specular_coeff * light.color * (np.dot(r, v) ** n)
+    color_comp = obj.material.specular_coeff * light.color * (np.dot(r, v) ** obj.material.specular_highlight)
     return np.array([color_comp, color_comp, color_comp])
 
 

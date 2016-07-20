@@ -11,6 +11,8 @@ EPS = 1.0e-7
 
 Viewport = namedtuple('Viewport', ['width', 'height'])
 Ray = namedtuple('Ray', ['origin', 'direction'])
+Material = namedtuple('Material', ['diffuse_color', 'diffuse_coeff', 'specular_coeff', 'specular_highlight'])
+
 
 def compute_fov(sensor_width, sensor_height, focal_length):
     """
@@ -50,8 +52,6 @@ class Camera:
         ray_dir = ray_dir / LA.norm(ray_dir)
         return Ray(self.eye, ray_dir)
 
-
-Material = namedtuple('Material', ['diffuse_color', 'diffuse_coeff'])
 
 class Sphere:
     """A true sphere"""
@@ -165,7 +165,9 @@ def load_scene(path):
                 mat = obj['sphere']['material']
                 diff_col = mat['diffuse_color']
                 material = Material(diffuse_color=np.array([diff_col['r'], diff_col['g'], diff_col['b']]),
-                                    diffuse_coeff=mat['diffuse_coeff'])
+                                    diffuse_coeff=mat['diffuse_coeff'],
+                                    specular_coeff=mat['specular_coeff'],
+                                    specular_highlight=mat['specular_highlight'])
                 objects.append(Sphere(center=np.array([center['x'], center['y'], center['z']]),
                                       radius=obj['sphere']['radius'],
                                       material=material))

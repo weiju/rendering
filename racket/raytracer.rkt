@@ -10,7 +10,8 @@
 (struct Viewport (width height) #:transparent)
 (struct Ray (origin direction) #:transparent)
 (struct Light (position color) #:transparent)
-(struct Material (diffuse-color diffuse-coeff) #:transparent)
+(struct Material (diffuse-color diffuse-coeff
+                                specular-coeff specular-highlight) #:transparent)
 (struct Color (r g b a) #:transparent)
 (struct AmbientLight (color coeff) #:transparent)
 (struct Camera (eye bottom-left xinc yinc) #:transparent)
@@ -22,7 +23,7 @@
 (define (make-color2 r g b [a 1.0]) (Color r g b a))
 (define (make-color-hash ht) (make-color2 (hash-ref ht 'r) (hash-ref ht 'g)
                                           (hash-ref ht 'b)))
-(define (convert-color-val v) (exact-round (* v 255)))
+(define (convert-color-val v) (min 255 (max 0 (exact-round (* v 255)))))
 (define (convert-color c)
   (make-color (convert-color-val (Color-r c)) (convert-color-val (Color-g c))
               (convert-color-val (Color-b c))))
@@ -33,7 +34,9 @@
   (Light (make-vec3d (hash-ref ht 'position)) (hash-ref ht 'color)))
 (define (make-material ht)
   (Material (make-color-hash (hash-ref ht 'diffuse_color))
-            (hash-ref ht 'diffuse_coeff)))
+            (hash-ref ht 'diffuse_coeff)
+            (hash-ref ht 'specular_coeff)
+            (hash-ref ht 'specular_highlight)))
 (define (make-sphere ht)
   (Sphere (make-vec3d (hash-ref ht 'center)) (hash-ref ht 'radius)
                       (make-material (hash-ref ht 'material))))
@@ -173,9 +176,6 @@
 (define (trim-negative n)
   (cond [(< n 0) 0]
         [else n]))
-(define (trim255 n)
-  (cond [(> n 255) 255]
-        [else n]))
 
 (define (diffuse-component ray intersection light)
   (let* ([t (car intersection)]
@@ -189,6 +189,18 @@
          [ds (* (Material-diffuse-coeff mat) (Light-color light) ldot-normal)])
     (make-color2 (* (Color-r col) ds) (* (Color-g col) ds)
                  (* (Color-b col) ds))))
+
+(define (phong-component ray intersection light)
+  (let* ([t (car intersection)]
+         [normal (cadr intersection)]
+         [mat (Sphere-material (caddr intersection))]
+         [intersect-point (v3d-add (Ray-origin ray) (v3d-smul (Ray-direction ray) t))]
+         [l (v3d-normalize (v3d-sub (Light-position light) intersect-point))]
+         [v (v3d-normalize (v3d-sub (Ray-origin ray) intersect-point))]
+         [r (v3d-smul (v3d-sub normal l) (* 2 (v3d-dot l normal)))]
+         [color-comp (* (Material-specular-coeff mat) (Light-color light)
+                     (expt (v3d-dot r v) (Material-specular-highlight mat)))])
+    (make-color2 color-comp color-comp color-comp)))
 
 (define (ambient-component objmat scene)
   (let* ([amblight (Scene-ambient-light scene)]
@@ -213,8 +225,9 @@
 (define (illuminate scene ray intersection)
   (let* ([obj (caddr intersection)]
          [diffuse (diffuse-component ray intersection (car (Scene-lights scene)))]
-         [ambient (ambient-component (Sphere-material obj) scene)])
-    (color-add diffuse ambient)))
+         [ambient (ambient-component (Sphere-material obj) scene)]
+         [specular (phong-component ray intersection (car (Scene-lights scene)))])
+    (color-add (color-add diffuse ambient) specular)))
 
 (define (trace-ray scene ray)
   (let* ([background (Scene-background-color scene)]
@@ -272,4 +285,4 @@
            [y ydiv])
       (list (+ x (jitter xsec-size)) (+ y (jitter ysec-size))))))
 
-;;(raytracer "../scene.json" "testout.png")
+(raytracer "../scene.json" "testout.png")
