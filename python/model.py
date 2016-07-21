@@ -11,7 +11,7 @@ EPS = 1.0e-7
 
 Viewport = namedtuple('Viewport', ['width', 'height'])
 Ray = namedtuple('Ray', ['origin', 'direction'])
-Material = namedtuple('Material', ['diffuse_color', 'diffuse_coeff', 'specular_coeff', 'specular_highlight'])
+Material = namedtuple('Material', ['diffuse_color', 'diffuse_coeff', 'specular_coeff', 'hardness'])
 
 
 def compute_fov(sensor_width, sensor_height, focal_length):
@@ -167,7 +167,7 @@ def load_scene(path):
                 material = Material(diffuse_color=np.array([diff_col['r'], diff_col['g'], diff_col['b']]),
                                     diffuse_coeff=mat['diffuse_coeff'],
                                     specular_coeff=mat['specular_coeff'],
-                                    specular_highlight=mat['specular_highlight'])
+                                    hardness=mat['hardness'])
                 objects.append(Sphere(center=np.array([center['x'], center['y'], center['z']]),
                                       radius=obj['sphere']['radius'],
                                       material=material))

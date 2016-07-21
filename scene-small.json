@@ -1,0 +1,29 @@
+{
+    "viewport": { "width": 120, "height": 80 },
+    "background_color": { "r": 0.1, "g": 0.3, "b": 0.6},
+    "ambient_light": { "color": 0.75, "coeff": 0.8 },
+    "objects": [
+        {
+            "sphere": {
+                "center": { "x": 0.0, "y": 0.0, "z": -300.0 },
+                "radius": 150.0,
+                "material": {
+                    "diffuse_color": { "r": 0.0, "g": 1.0, "b": 0.0 },
+                    "diffuse_coeff": 0.55,
+                    "specular_coeff": 0.95,
+                    "hardness": 16
+                }
+            }
+        }
+    ],
+    "lights": [
+        {
+            "position": { "x": -10.0, "y": -220.0, "z": -100.0 },
+            "color": 0.75
+        }
+    ],
+    "camera": {
+        "eye": { "x": 0.0, "y": 0.0, "z": 400.0 },
+        "lookat": { "x": 0.0, "y": 0.0, "z": 0.0 }
+    }
+}

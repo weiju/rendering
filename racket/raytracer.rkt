@@ -12,7 +12,7 @@
 (struct Ray (origin direction) #:transparent)
 (struct Light (position color) #:transparent)
 (struct Material (diffuse-color diffuse-coeff
-                                specular-coeff specular-highlight) #:transparent)
+                                specular-coeff hardness) #:transparent)
 (struct Color (r g b a) #:transparent)
 (struct AmbientLight (color coeff) #:transparent)
 (struct Camera (eye bottom-left xinc yinc) #:transparent)
@@ -38,7 +38,7 @@
   (Material (make-color-hash (hash-ref ht 'diffuse_color))
             (hash-ref ht 'diffuse_coeff)
             (hash-ref ht 'specular_coeff)
-            (hash-ref ht 'specular_highlight)))
+            (hash-ref ht 'hardness)))
 (define (make-sphere ht)
   (Sphere (make-vec3d (hash-ref ht 'center)) (hash-ref ht 'radius)
                       (make-material (hash-ref ht 'material))))
@@ -199,7 +199,7 @@
          [v (v3d-normalize (v3d-sub (Ray-origin ray) intersect-point))]
          [r (v3d-smul (v3d-sub normal l) (* 2 (v3d-dot l normal)))]
          [color-comp (* (Material-specular-coeff mat) (Light-color light)
-                     (expt (v3d-dot r v) (Material-specular-highlight mat)))])
+                     (expt (v3d-dot r v) (Material-hardness mat)))])
     (make-color2 color-comp color-comp color-comp)))
 
 (define (ambient-component objmat scene)
@@ -286,3 +286,4 @@
       (list (+ x (jitter xsec-size)) (+ y (jitter ysec-size))))))
 
 ;;(raytracer "../scene.json" "testout.png")
+(raytracer "../scene-small.json" "testout.png")

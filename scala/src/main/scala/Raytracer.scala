@@ -44,7 +44,7 @@ object Raytracer {
     val l = (light.position - intersectPoint).normalized
     val v = (ray.origin - intersectPoint).normalized
     val r = (intersection.normal - l) * 2 * (l dot intersection.normal)
-    val colorComp: Float = (obj.material.specularCoeff * light.color * math.pow((r dot v), obj.material.specularHighlight)).toFloat
+    val colorComp: Float = (obj.material.specularCoeff * light.color * math.pow((r dot v), obj.material.hardness)).toFloat
     ColorTuple(colorComp, colorComp, colorComp)
   }
 
