@@ -26,7 +26,7 @@ class SphereTest(unittest.TestCase):  # pylint: disable-msg=R0904
 
     def setUp(self):
         self.sphere = model.Sphere(np.array([0.0, 0.0, 300]), 150.0,
-                                   model.Material(np.array([1.0, 0.0, 0.0]), 0.56))
+                                   model.Material(np.array([1.0, 0.0, 0.0]), 0.56, 0.8, 10.0))
 
     def test_initial(self):
         self.assertTrue(np.allclose(self.sphere.center, np.array([0.0, 0.0, 300.0])))
